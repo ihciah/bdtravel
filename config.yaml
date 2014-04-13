@@ -1,0 +1,10 @@
+---
+name: yourappid
+version: 1
+cron:
+- description: shua
+  url: /shua?q=cron
+  schedule: "*/20 * * * *"
+- description: reset
+  url: /reset
+  schedule: "0 0 * * *"
