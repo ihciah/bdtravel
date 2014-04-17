@@ -12,7 +12,7 @@ setpassword='ihciah'
 
 #mode不再需要手动设置！仅修改setpassword即可！
 
-#------------------------------------------------------------------------
+#----------------------------以下内容非必要请不要修改-------------------------------
 
 VERSION=2.7
 err=0
@@ -332,8 +332,6 @@ class Initialize(tornado.web.RequestHandler):
             pass
         mydb.close()
         self.write('Database has benn initialized. :)<br>This function is of no use from now on.')
-
-
 app = tornado.wsgi.WSGIApplication([
   ('/shua', Shua),
   ('/set', Set),
