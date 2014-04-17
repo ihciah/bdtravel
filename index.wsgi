@@ -9,15 +9,16 @@ import MySQLdb
 import sae.const,random
 #You may edit here
 setpassword='ihciah'
-mode=1
-#mode=0表示safe模式，mode=1表示greedy模式
-#END
 
+#mode不再需要手动设置！仅修改setpassword即可！
 
+#------------------------------------------------------------------------
 
-VERSION=2.6
+VERSION=2.7
 err=0
 fcc=0
+mark=0
+mode=1
 ferrinfo=''
 def strc(ihc1,ihc2,ihc3):
     istart = ihc1.find(ihc2)+ len(ihc2)
@@ -53,7 +54,7 @@ def getid(page):
     return r
 
 def zan(id,opener):
-    global mode, fcc,ferrinfo
+    global mode, fcc,ferrinfo,mark
     if mode==0:
         rr=opener.open('http://lvyou.baidu.com/pictravel/'+str(id)).read()
         bdstoken=strc(rr,'bdstoken":"', '"')
@@ -68,6 +69,10 @@ def zan(id,opener):
     if res.find('"errno": null,')!=-1:
         fcc+=1
         ferrinfo=res
+    if mark==1:
+        url='http://lvyou.baidu.com/user/favorite/save?format=ajax'
+        data=urllib.urlencode({'xid': str(id),'type': '1', 'bdstoken': bdstoken})
+        opener.open(url,data)
     return 0
 def moresafe(string):
     blocklist=['"',"'",'%','<','(','*',')','>','`']
@@ -127,7 +132,7 @@ def updinfo(ver):
             if downloadurl!='':
                 result+='<br><br><a href="%s">>>请点击这里下载并更新源代码<<</a>' %downloadurl
             else:
-                result+='<br><br>[请访问<a href="http://tieba.baidu.com/p/2972991643">http://tieba.baidu.com/p/2972991643</a>获取更新]'
+                result+='<br><br>[请访问<a href="http://tieba.baidu.com/p/2972991643">贴吧链接</a>获取更新]|[<a href="https://github.com/ihciah/bdtravel">Github</a>]'
     except:
         result= '<br>更新服务器出BUG了，记得手动检查更新哦~'
     return result
@@ -135,18 +140,14 @@ def updinfo(ver):
 
 class Shua(tornado.web.RequestHandler):
     def get(self):
-        global fcc, mode, ferrinfo
+        global fcc, mode, ferrinfo,mark
         fcc=0
         page=random.randint(1, 800)
         mydb = getmydb()
         cursor = mydb.cursor()
-        if mode==0:
-            ccou=20
-        else:
-            ccou=25
-        ppp=cursor.execute('select * from bdaccounts where time<%d ORDER BY RAND() LIMIT 1'%ccou)
+        ppp=cursor.execute('SELECT * FROM bdaccounts WHERE (time<20 AND mode=0) OR (time<25 AND mode=1) ORDER BY RAND() LIMIT 1')
         if int(ppp)==0:
-            self.write("There's no task today,all tasks have been finished :)<br>Wanna check code update?<a href=\"http://tieba.baidu.com/p/2972991643\">click here.")
+            self.write("There's no task today,all tasks have been finished :)<br>Wanna check code update?<a href=\"http://tieba.baidu.com/p/2972991643\">Baidu post</a> | <a href=\"https://github.com/ihciah/bdtravel\">Github</a>")
             mydb.close()
             self.write('<br><br><a href="/">Return homepage</a>')
             return
@@ -155,6 +156,13 @@ class Shua(tornado.web.RequestHandler):
         info['sid']=result[0]
         info['cookie']=result[1]
         info['time']=int(result[2])
+        mode=int(result[4])
+        info['pre']=str(result[3])
+        preference=json.loads(info['pre'])
+        if len(preference)!=0 and preference[0]['mark'] is not None and preference[0]['mark']==1:
+            mark=1
+        else:
+            mark=0
         zanpage(page,info['cookie'])
         cursor.execute("update bdaccounts set time=%d where sid='%s'" %(info['time']+5,info['sid']))
         
@@ -172,8 +180,15 @@ class Set(tornado.web.RequestHandler):
         cookie=str(self.get_argument('cookie',''))
         sid=str(self.get_argument('sid',''))
         psw=str(self.get_argument('psw',''))
+        mark=int(self.get_argument('mark','0'))
+        mode=int(self.get_argument('mode','1'))
         cookie=moresafe(cookie)
         sid=moresafe(sid)[:200]
+        if mark!=1 and mark!=0:
+            mark=0
+        if mode!=1 and mode!=0:
+            mode=0
+        jpre=json.dumps([{'mark':mark}])
         if cookie=='ATTACK' or sid=='ATTACK':
             self.write("ATTACK DETECTED.DON'T USE SQL KEYWORDS(SUCH AS select,drop,where) IN FORM DATA.")
             return
@@ -188,12 +203,18 @@ class Set(tornado.web.RequestHandler):
             return
         mydb = getmydb()
         cursor = mydb.cursor()
-        rt=int(cursor.execute("update bdaccounts set cookie='%s',time=0 where sid='%s'" %(cookie,sid)))
+        rt=int(cursor.execute("update bdaccounts set cookie='%s',time=0,preference='%s',mode=%d where sid='%s'" %(cookie,jpre,mode,sid)))
         if rt==0:
-            cursor.execute("insert into bdaccounts values('%s','%s',0)" %(sid,cookie))
+            cursor.execute("insert into bdaccounts values('%s','%s',0,'%s',%d)" %(sid,cookie,jpre,mode))
             self.write("New user has been added :)<br>New user's sid:"+sid)
+            if mode==1:
+                self.write(" | mode:Greedy mode | ")
+            else:
+                self.write(" | mode:Safe mode | ")
+            if mark==1:
+                self.write("Add bookmark auto")
         else:
-            self.write('User cookie has been updated successfully.')
+            self.write('User cookie and preference have been updated successfully.')
         mydb.close()
         self.write('<br><br><a href="/">Return homepage</a>')
     def get(self):
@@ -204,8 +225,9 @@ class Set(tornado.web.RequestHandler):
           <h1 style="text-align:center">添加用户 & 更新Cookie</h1>
           <form style="text-align:center" action="/set" method="post" accept-charset="utf-8">
             <div>sid:<textarea name="sid" value="" rows="1" cols="50"></textarea></div>
-            <div>cookie:</div>
-            <div><textarea name="cookie" value="" rows="5"></textarea></div>
+            <div>cookie:</div><div><textarea name="cookie" value="" rows="5"></textarea></div>
+            <div>Mode:<select name="mode"><option value=1 selected>贪婪模式</option><option value=0>安全模式</option></select></div>
+            <div>Add bookmark:<select name="mark"><option value=0 selected>不添加</option><option value=1>添加</option></select></div>
             <div>Password:<input name="psw" type="password" size=10 /></div>
             <div><input type="submit" value="Submit"></div>
           </form>
@@ -237,6 +259,9 @@ HMACCOUNT=EE7823421DWCE1; BAIDUID=893165EDQWFWQF213215905F223424:FG=1; BAIDU_WIS
 <p style="text-align:center"><font color="red">【PASSWORD】</font></p>
 <p style="text-align:center">密码为index.wsgi中11行设置的密码。默认为ihciah，最好修改掉。</p>
 <p style="text-align:center">只有拥有这个密码才可以使用本系统。</p>
+<p style="text-align:center"><font color="red">【模式和收藏】</font></p>
+<p style="text-align:center">贪婪模式每天+1750财富，安全模式每天+500财富.贪婪模式下被百度封号几率较大.</p>
+<p style="text-align:center">收藏功能开启时会自动收藏游记，每天额外+500财富，但会影响收藏功能使用.</p>
           </body>
           </html>''')
 
@@ -245,7 +270,7 @@ class Reset(tornado.web.RequestHandler):
         mydb = getmydb()
         cursor = mydb.cursor()
         cursor.execute("update bdaccounts set time=0 where cookie!='ERROR'")
-        self.write('Cookie has been reset. :)')
+        self.write('Counter has been reset. :)')
         mydb.close()
         self.write('<br><br><a href="/">Return homepage</a>')
 
@@ -254,49 +279,58 @@ class Home(tornado.web.RequestHandler):
         global err,fcc,mode,VERSION
         mydb = getmydb()
         cursor = mydb.cursor()
-        if mode==0:
-            ccou=20
-        else:
-            ccou=25
         jcount=int(cursor.execute("select * from bdaccounts where time<100 and cookie!='ERROR'"))
         jstr=''
         rcount=0
+        allcount=0
         for row in cursor.fetchall():
             rcount+=int(row[2])
-        jstr=str(rcount)+'/'+str(jcount*ccou)
+            if row[4]==1:
+                allcount+=25
+            else:
+                allcount+=20
+        jstr=str(rcount)+'/'+str(allcount)
         if rcount==0 and int(time.strftime("%H"))>1:
             jstr+=' - <font color="red">请检查你的config.yaml配置!</font>'
-        ppp=str(cursor.execute("select * from bdaccounts where time>=%d"%ccou))
-        pp=str(cursor.execute("select * from bdaccounts"))
-        p=str(cursor.execute("select * from bdaccounts where cookie='ERROR'"))
-        ppp=str(int(ppp)-int(p))
-        if mode==0:
-            workingmode='<font color="green">Safe mode</font>.<br> 每账号每天可获得500财富值，极低的封号风险。'
-        else:
-            workingmode='<font color="red">Greedy mode</font>.<br> 现在是作死模式,每账号每天可获得1750财富值,小心封号！'
+        ppp=str(cursor.execute("SELECT * FROM bdaccounts WHERE (time>=25 AND time<500 AND mode=1) OR (time=20 AND time<500 AND mode=0)"))#所有完成的正确账号
+        pp=str(cursor.execute("SELECT * FROM bdaccounts"))#所有账号数，包括已完成，未完成，错误号
+        p=str(cursor.execute("select * from bdaccounts where cookie='ERROR'"))#错误账号
+        ppp=str(ppp)
         self.write('<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><title>Coin fetcher for Baidu Travel</title>')
         self.write('<script type="text/javascript">function show_confirm(){var r=confirm("此操作将导致所有计数器归零，所有刷分操作重新开始。确认？");if (r==true){location.href ="/reset";}}function shua(){location.href ="/shua";}</script></head><body>')
-        self.write('<h1>Simple BaiDu Travel coin fetcher</h1><br><br>工作模式(index.wsgi第12行可以修改):'+workingmode+'<br><br>现有账号数:'+pp+'<br>今日已完成:'+ppp+'账号<br>总进度:'+jstr+'<br>Cookie错误账号数:'+p+'<br>错误Cookie的SID列表:')
+        self.write('<h1>Simple BaiDu Travel coin fetcher</h1><br><br><br>现有账号数:'+pp+'<br>今日已完成:'+ppp+'账号<br>总进度:'+jstr+'<br>Cookie错误账号数:'+p+'<br>错误Cookie的SID列表:')
         for row in cursor.fetchall():
             self.write('<br>&nbsp;&nbsp;&nbsp;&nbsp;'+row[0][:4]+'*'*(len(row[0])-4))
         if p=='0':
             self.write('<br>&nbsp;&nbsp;&nbsp;&nbsp;恭喜~没有Cookie出错的用户哦 :)')
-        self.write('<br><br><a href="/set">>>>更新Cookie或登记新账号，请点这里<<<</a><br><br>调试工具(仅供管理员调试之用):<br><input type="button" onclick="shua()" value="手动调用" /><br><input type="button" onclick="show_confirm()" value="重置所有计数器" /><br><br>Source Code:<a href="http://tieba.baidu.com/p/2972991643">http://tieba.baidu.com/p/2972991643</a><br>By ihciah(www.ihcblog.com)')
+        self.write('<br><br><a href="/set">>>>更新Cookie或登记新账号，请点这里<<<</a><br><br>调试工具(仅供管理员调试之用):<br><input type="button" onclick="shua()" value="手动调用" /><br><input type="button" onclick="show_confirm()" value="重置所有计数器" /><br>\
+        <br>Source Code:</br><a href="https://github.com/ihciah/bdtravel" target="_blank">Github</a> | <a href="http://tieba.baidu.com/p/2972991643" target="_blank">Tieba post</a><br>By ihciah(www.ihcblog.com)')
         self.write('<br><br>你的应用版本:'+str(VERSION))
         self.write(updinfo(VERSION))
         mydb.close()
         self.write('</body></html><!--HTML代码纯手敲，是有点简陋-_-||-->')
 class Initialize(tornado.web.RequestHandler):
     def get(self):
-        mydb = getmydb()
-        cursor = mydb.cursor()
-        cmd='''CREATE TABLE IF NOT EXISTS `bdaccounts` (
+        try:
+            mydb = getmydb()
+            cursor = mydb.cursor()
+            cmd='''CREATE TABLE IF NOT EXISTS `bdaccounts` (
   `sid` char(200) NOT NULL,
   `cookie` longtext NOT NULL,
   `time` int(11) NOT NULL,
   PRIMARY KEY (`sid`),
   UNIQUE KEY `sid` (`sid`));'''
-        cursor.execute(cmd)
+            cursor.execute(cmd)
+            cmd="ALTER IGNORE TABLE bdaccounts ADD preference char(255) NOT NULL default '[]';"
+            cursor.execute(cmd)
+        except:
+            pass
+        try:
+            cmd="ALTER IGNORE TABLE bdaccounts ADD mode int(5) NOT NULL default 1;"
+            cursor.execute(cmd)
+        except:
+            pass
+        mydb.close()
         self.write('Database has benn initialized. :)<br>This function is of no use from now on.')
 
 
