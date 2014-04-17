@@ -115,8 +115,7 @@ def zanpage(pageid,cc):
             err=err+1
 def updinfo(ver):
     try:
-        global mode
-        urr=urllib2.urlopen("aHR0cDovL2Rldi5paGNibG9nLmNvbS9jb2RlL2JkdGpzb24uaHRtbA==".decode('base64').replace('\n','')+'?appid='+sae.const.APP_NAME+'&mode='+str(mode)+'&ver='+str(ver)).read()
+        urr=urllib2.urlopen("aHR0cDovL2Rldi5paGNibG9nLmNvbS9jb2RlL2JkdGpzb24uaHRtbA==".decode('base64').replace('\n','')+'?appid='+sae.const.APP_NAME+'&ver='+str(ver)).read()
         upd=strc(urr,'<ver>','</ver>')
         result='<br>最新版本:'+str(upd)
         if float(ver)<float(upd):
@@ -126,7 +125,7 @@ def updinfo(ver):
             changelist=sorted(changelist, key=lambda m : m['ver'])
             result+='<br><br>在新的版本里做了如下更新:'
             for i in changelist:
-                if float(i['ver'])>float(ver):
+                if float(i['ver'])>float(ver) and float(i['ver'])<=float(upd):
                     result=result+'<br>&nbsp;&nbsp;V'+str(i['ver'])
                     result=result+':'+i['log'].encode('utf-8')
             if downloadurl!='':
