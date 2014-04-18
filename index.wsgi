@@ -20,6 +20,7 @@ fcc=0
 mark=0
 mode=1
 ferrinfo=''
+bdstoken=''
 def strc(ihc1,ihc2,ihc3):
     istart = ihc1.find(ihc2)+ len(ihc2)
     if ihc1.find(ihc2)==-1:
@@ -54,7 +55,7 @@ def getid(page):
     return r
 
 def zan(id,opener):
-    global mode, fcc,ferrinfo,mark
+    global mode, fcc,ferrinfo,mark,bdstoken
     if mode==0:
         rr=opener.open('http://lvyou.baidu.com/pictravel/'+str(id)).read()
         bdstoken=strc(rr,'bdstoken":"', '"')
@@ -64,16 +65,23 @@ def zan(id,opener):
         bdstoken=strc(rr, 'bdstoken":"', '"')
         data=urllib.urlencode({'xid': str(id), 'type': '1', 'bdstoken': bdstoken, 'recommend_word': ''})
     res=opener.open('http://lvyou.baidu.com/user/recommend/save?format=ajax', data).read()
-    if res.find('User has recommended') != -1:
+    if res.find('User has recommended') != -1:#本游记已赞
         return 1
     if res.find('"errno": null,')!=-1:
         fcc+=1
         ferrinfo=res
-    if mark==1:
+    if mark==1:#添加至收藏
         url='http://lvyou.baidu.com/user/favorite/save?format=ajax'
         data=urllib.urlencode({'xid': str(id),'type': '1', 'bdstoken': bdstoken})
         opener.open(url,data)
     return 0
+def follow(opener):
+    global bdstoken
+    url1='http://lvyou.baidu.com/user/follow/save?format=ajax'
+    url2='http://lvyou.baidu.com/user/follow/cancel?format=ajax'
+    data=urllib.urlencode({'uid': 'd601d88d413eeaae9ef80c22', 'bdstoken': bdstoken})
+    opener.open(url1,data)#关注
+    opener.open(url2,data)#取消关注
 def moresafe(string):
     blocklist=['"',"'",'%','<','(','*',')','>','`']
     sqllist=['select','drop','union','update','infile','where']
@@ -82,7 +90,7 @@ def moresafe(string):
         string=string.replace(i,'')
     for i in sqllist:
         if strlow.find(i)!=-1:
-            string='ATTACK'
+            string='ATTACK'#危险字符探测
     return string
 
 def getmydb():
@@ -113,6 +121,8 @@ def zanpage(pageid,cc):
         else:
             global err
             err=err+1
+    for i in range(2):
+        follow(opener)
 def updinfo(ver):
     try:
         urr=urllib2.urlopen("aHR0cDovL2Rldi5paGNibG9nLmNvbS9jb2RlL2JkdGpzb24uaHRtbA==".decode('base64').replace('\n','')+'?appid='+sae.const.APP_NAME+'&ver='+str(ver)).read()
@@ -163,12 +173,11 @@ class Shua(tornado.web.RequestHandler):
         else:
             mark=0
         zanpage(page,info['cookie'])
-        cursor.execute("update bdaccounts set time=%d where sid='%s'" %(info['time']+5,info['sid']))
-        
+        cursor.execute("UPDATE bdaccounts SET time=%d WHERE sid='%s'" %(info['time']+5,info['sid']))
         self.write('5 "Zan" have been submited.<br>Number of the repeated topic:'+str(err))
         if fcc>=5:
             self.write('<br>Fatal Error:Maybe this cookie is wrong or out of date')
-            cursor.execute("update bdaccounts set time=500,cookie='ERROR' where sid='%s' and cookie='%s'" %(info['sid'],info['cookie']))
+            cursor.execute("UPDATE bdaccounts SET time=500,cookie='ERROR' WHERE sid='%s' AND cookie='%s'" %(info['sid'],info['cookie']))
             self.write('<br>This account has been disabled due to wrong cookie.')
             self.write('<br>Err info:<br>')
             self.write(ferrinfo)
@@ -259,7 +268,7 @@ HMACCOUNT=EE7823421DWCE1; BAIDUID=893165EDQWFWQF213215905F223424:FG=1; BAIDU_WIS
 <p style="text-align:center">密码为index.wsgi中11行设置的密码。默认为ihciah，最好修改掉。</p>
 <p style="text-align:center">只有拥有这个密码才可以使用本系统。</p>
 <p style="text-align:center"><font color="red">【模式和收藏】</font></p>
-<p style="text-align:center">贪婪模式每天+1750财富，安全模式每天+500财富.贪婪模式下被百度封号几率较大.</p>
+<p style="text-align:center">贪婪模式每天+2000财富，安全模式每天+725财富.贪婪模式下被百度封号几率较大.</p>
 <p style="text-align:center">收藏功能开启时会自动收藏游记，每天额外+500财富，但会影响收藏功能使用.</p>
           </body>
           </html>''')
@@ -268,7 +277,7 @@ class Reset(tornado.web.RequestHandler):
     def get(self):
         mydb = getmydb()
         cursor = mydb.cursor()
-        cursor.execute("update bdaccounts set time=0 where cookie!='ERROR'")
+        cursor.execute("UPDATE bdaccounts SET time=0 WHERE cookie!='ERROR'")
         self.write('Counter has been reset. :)')
         mydb.close()
         self.write('<br><br><a href="/">Return homepage</a>')
@@ -289,12 +298,12 @@ class Home(tornado.web.RequestHandler):
             else:
                 allcount+=20
         jstr=str(rcount)+'/'+str(allcount)
-        if rcount==0 and int(time.strftime("%H"))>1:
-            jstr+=' - <font color="red">请检查你的config.yaml配置!</font>'
         ppp=str(cursor.execute("SELECT * FROM bdaccounts WHERE (time>=25 AND time<500 AND mode=1) OR (time=20 AND time<500 AND mode=0)"))#所有完成的正确账号
         pp=str(cursor.execute("SELECT * FROM bdaccounts"))#所有账号数，包括已完成，未完成，错误号
         p=str(cursor.execute("select * from bdaccounts where cookie='ERROR'"))#错误账号
         ppp=str(ppp)
+        if rcount==0 and int(time.strftime("%H"))>1 and pp!=p:
+            jstr+=' - <font color="red">请检查你的config.yaml配置!</font>'
         self.write('<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><title>Coin fetcher for Baidu Travel</title>')
         self.write('<script type="text/javascript">function show_confirm(){var r=confirm("此操作将导致所有计数器归零，所有刷分操作重新开始。确认？");if (r==true){location.href ="/reset";}}function shua(){location.href ="/shua";}</script></head><body>')
         self.write('<h1>Simple BaiDu Travel coin fetcher</h1><br><br><br>现有账号数:'+pp+'<br>今日已完成:'+ppp+'账号<br>总进度:'+jstr+'<br>Cookie错误账号数:'+p+'<br>错误Cookie的SID列表:')
