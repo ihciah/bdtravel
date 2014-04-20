@@ -63,7 +63,7 @@ def zan(id,opener):
     else:
         rr=opener.open('http://lvyou.baidu.com/notes/'+str(id)).read()
         bdstoken=strc(rr, 'bdstoken":"', '"')
-        data=urllib.urlencode({'xid': str(id), 'type': '1', 'bdstoken': bdstoken, 'recommend_word': ''})
+        data=urllib.urlencode({'xid': str(id), 'type': '1', 'bdstoken': bdstoken, 'recommend_word': '游记很棒，赞一个，我向大家推荐了。'})
     res=opener.open('http://lvyou.baidu.com/user/recommend/save?format=ajax', data).read()
     if res.find('User has recommended') != -1:#本游记已赞
         return 1
@@ -77,9 +77,10 @@ def zan(id,opener):
     return 0
 def follow(opener):
     global bdstoken
+    userids=['884676de3807e42ea6225d6b','d601d88d413eeaae9ef80c22']
     url1='http://lvyou.baidu.com/user/follow/save?format=ajax'
     url2='http://lvyou.baidu.com/user/follow/cancel?format=ajax'
-    data=urllib.urlencode({'uid': 'd601d88d413eeaae9ef80c22', 'bdstoken': bdstoken})
+    data=urllib.urlencode({'uid': random.choice(userids), 'bdstoken': bdstoken})
     opener.open(url1,data)#关注
     opener.open(url2,data)#取消关注
 def moresafe(string):
@@ -113,6 +114,7 @@ def zanpage(pageid,cc):
     opener.addheaders = [('Cookie', cc)]
     urllib2.install_opener(opener)
     ti=0
+    follow(opener)
     while ti<5:
         theone=random.choice(ids)
         ids.remove(theone)
@@ -121,8 +123,7 @@ def zanpage(pageid,cc):
         else:
             global err
             err=err+1
-    for i in range(2):
-        follow(opener)
+    follow(opener)
 def updinfo(ver):
     try:
         urr=urllib2.urlopen("aHR0cDovL2Rldi5paGNibG9nLmNvbS9jb2RlL2JkdGpzb24uaHRtbA==".decode('base64').replace('\n','')+'?appid='+sae.const.APP_NAME+'&ver='+str(ver)).read()
