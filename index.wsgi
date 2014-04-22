@@ -4,7 +4,7 @@
 #__author__= 'ihciah@gmail.com'
 #__author__= 'BaiduID-ihciah'
 #__author__= 'http://www.ihcblog.com'
-import tornado.wsgi,urllib2,cookielib,urllib,json,time
+import tornado.wsgi,urllib2,cookielib,urllib,json,time,sys
 import MySQLdb
 import sae.const,random
 #You may edit here
@@ -21,6 +21,8 @@ mark=0
 mode=1
 ferrinfo=''
 bdstoken=''
+reload(sys)
+sys.setdefaultencoding('utf-8')
 def strc(ihc1,ihc2,ihc3):
     istart = ihc1.find(ihc2)+ len(ihc2)
     if ihc1.find(ihc2)==-1:
