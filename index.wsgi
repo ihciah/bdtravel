@@ -200,7 +200,7 @@ class Shua(tornado.web.RequestHandler):
         if int(time.strftime("%H"))<int(starttime):
             self.write('Time is not correct.Task will be started after %d:00.'%int(starttime))
             return
-        if random.choice([1,1,0,0,0,0,0,0])==0:#3/4的几率不执行任务
+        if random.choice([1,1,0,0,1,0])==0:#1/2的几率不执行任务
             self.write('pass.maybe next time~')
             return
         fcc=0
@@ -313,8 +313,8 @@ class Home(tornado.web.RequestHandler):
         pp=str(cursor.execute("SELECT * FROM bdaccounts"))#所有账号数，包括已完成，未完成，错误号
         p=str(cursor.execute("select * from bdaccounts where cookie='ERROR'"))#错误账号
         ppp=str(ppp)
-        if rcount==0 and int(time.strftime("%H"))>1 and pp!=p:
-            jstr+=' - <font color="red">请检查你的config.yaml配置!</font>'
+        #if rcount==0 and int(time.strftime("%H"))>1 and pp!=p:
+        #    jstr+=' - <font color="red">请检查你的config.yaml配置!</font>'
         for row in cursor.fetchall():
             errlist.append(row[0][:4]+'*'*(len(row[0])-4))
         if p=='0':
