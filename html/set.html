@@ -1,0 +1,107 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>百度旅游财富助手-度娘财富</title>
+<link href="templates/style.css" rel="stylesheet" type="text/css" />
+<script src="templates/jquery.min.js"></script>
+<script src="templates/jquery.tabs.js"></script>
+<script>
+$(function(){
+	$('.demo').Tabs();
+});	
+function changewhenfocus(l)
+{
+	var x=document.getElementById("janecc").getElementsByTagName("div")[0].getElementsByTagName("ol")[0];
+	items = x.getElementsByTagName("li");
+	items[l].click();
+	}
+function writepsw(){
+	document.getElementById("psw").value="ihciah";
+}
+</script>
+</head>
+
+<body>
+<div class="header">
+    <div class="head">
+        <div class="tittle">
+            <h1>度娘财富</h1>
+        </div>
+        <ul class="nav">
+       	  <li><a href="/">首页</a></li>
+          <li class="currents"><a href="#">添加/更新账号</a></li>
+          <li><a href="/about">关于</a></li>
+        </ul>
+    </div>
+</div>
+
+<div class="main">
+	<div class="aboutme">
+    	<h3>温馨小提示</h3>
+        <div id="janecc">
+            <div class="box demo">
+                <ol class="tab_menu">
+                    <li class="current" onmouseover="this.click();">SID</li>
+                    <li onmouseover="this.click();">Cookie</li>
+                    <li onmouseover="this.click();">模式和收藏</li>
+                    <li onmouseover="this.click();">密码</li>
+                </ol>
+                <div class="tab_box">
+                    <div>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SID不一定是百度ID，可以是英文和数字的任意组合。<br />
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;初始设定时<b style="color:red">SID随意取</b>，但更新cookie时需要输入初始设定的sid，所以请记住(忘记请登录SAE点击数据库管理去看)。<br />
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;每个SID唯一对应一个账号，为防止他人改动你的cookie，请设置4位以上，首页将在cookie过期时显示sid前4位。<br /><br />
+					&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;密码为index.wsgi中11行设置的密码。<br />
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;默认为<b style="color:red">ihciah</b>，最好修改掉。<br />
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;只有拥有这个密码才可以使用本系统。
+                    </div>
+                    <div class="hide">
+                    <b>【如何获取COOKIE】(javascript方式可能出错)</b><br />
+                    1 . 使用chrome新打开一个<b style="color:red">隐身</b>标签页 （注意是隐身标签页）<br />
+                    2 . 打开lvyou.baidu.com并登陆<br />
+                    3 . 点击F12<br />
+                    4 . 刷新该页面<br />
+                    5 . 在下方的开发者工具中选择<b style="color:red">Network</b>标签，拉到最上边，点击第一个包 ( 名为lvyou.baidu.com ) ，右侧点击Header标签<br />
+                    6 . 把<b style="color:red">Request Header</b>中的Cookie复制下来（直接复制，所有的都复制下来扔进去）<br />
+                    Cookie格式像这样(其实只需要有关键的几项就够了)：<br />
+                    至此Cookie已提取成功。直接关闭浏览器（别点退出，否则cookie失效）
+                    </div>
+                    <div class="hide">
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b style="color:red">贪婪模式</b>每天+2000财富<br />
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b style="color:green">安全模式</b>每天+725财富<br />
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;贪婪模式下<b style="color:red">被百度封号</b>几率较大。<br /><br />
+					&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b style="color:red">收藏功能</b>开启时会自动收藏游记，每天额外+500财富，但会影响收藏功能使用(若不使用可开启)。
+                    </div>
+                    <div class="hide">
+                    	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;本密码非百度账号密码！<br />
+                    	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;默认密码<b onclick="writepsw();"><font color="red">ihciah</font> (点此自动填写)</b>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="janecc">
+    	<div class="errorset">
+        	<h4>添加用户 &amp; 更新Cookie</h4>
+            <ul class="login">
+            <form style="text-align:center" action="/set" method="post" accept-charset="utf-8">
+                <li><span>SID : </span><input name="sid" class="sid" value="" rows="1" cols="50" onfocus="changewhenfocus(0)"></textarea></li>
+                <li class="cao"><span>Cookie : </span><textarea name="cookie" class="cookie" value="" rows="8" style="resize:none" onfocus="changewhenfocus(1);"></textarea></li>
+                <li><span>模式 : </span><select name="mode"  class="select" onfocus="changewhenfocus(2);"><option value=1 selected>贪婪模式</option><option value=0>安全模式</option></select></li>
+                <li><span>收藏 : </span><select name="mark" class="select" onfocus="changewhenfocus(2);"><option value=1 selected>开启</option><option value=0>关闭</option></select></li>
+                <li><span>系统密码 : </span><input name="psw" class="psw" type="password" size="10" onfocus="changewhenfocus(3);" id="psw"></li> 
+                <li><input type="submit" class="go" value="提交"></li>
+          </form>
+            </ul>
+        </div>
+        
+    </div>
+</div>
+
+<div class="footer">
+	©2014 度娘财富 | <a href="https://github.com/ihciah/bdtravel" target="_blank">百度旅游财富助手</a> | Code by <a href="http://www.ihcblog.com/" target="_blank">ihciah</a> | Theme by <a href="http://www.janecc.com/" target="_blank">JaneCC</a>
+</div>
+
+</body>
+</html>

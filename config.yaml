@@ -4,7 +4,10 @@ version: 1
 cron:
 - description: shua
   url: /shua?q=cron
-  schedule: "*/20 * * * *"
+  schedule: "*/2 * * * *"
 - description: reset
   url: /reset
   schedule: "0 0 * * *"
+handlers:
+- url: /templates
+  static_dir: templates

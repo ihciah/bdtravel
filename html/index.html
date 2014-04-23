@@ -1,0 +1,78 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>首页-度娘财富</title>
+<link href="templates/style.css" rel="stylesheet" type="text/css" />
+<script>
+function showtools(){
+	var tools=document.getElementById("admintools");
+	if (tools.innerHTML=='')
+	{tools.innerHTML='<br /><input type="button" onClick="shua()" value="手动调用">&nbsp;<input type="button" onClick="show_confirm()" value="重置所有计数器">';
+		document.getElementById("adminlabel").innerHTML='隐藏管理员工具';}
+	else
+	{tools.innerHTML='';
+		document.getElementById("adminlabel").innerHTML='显示管理员工具';}}
+function show_confirm(){
+var r=confirm("此操作将导致所有计数器归零，所有刷分操作重新开始。确认？");
+if (r==true){location.href ="/reset";}}
+function shua(){location.href ="/shua";}
+</script>
+</head>
+
+<body>
+<div class="header">
+    <div class="head">
+        <div class="tittle">
+            <h1>度娘财富</h1>
+        </div>
+        <ul class="nav">
+       	  <li class="currents"><a href="#">首页</a></li>
+            <li><a href="/set">添加/更新账号</a></li>
+            <li><a href="/about">关于</a></li>
+        </ul>
+    </div>
+</div>
+
+<div class="main">
+	<div class="aboutme">
+    	<h2>百度旅游财富助手</h2>
+		<ul>
+        	
+            <li>现有账号数 : <b class="b">{{pp}}</b> 个</li>
+            <li>今日已完成 : <b class="b">{{ppp}}</b> 账号</li>
+            <li>总进度 : <b class="b">{{jstr}}</b> </li>
+            <li class="space"></li>
+            <li id="adminlabel" onclick="showtools();">显示管理员工具</li>
+            <li id="admintools"></li>
+            <li class="space"></li>
+            <li><b style="color:red;">>>>注册新账号或更新账号请点击顶部标签<<< </b></li>
+            <li><b style="color:red;">近期百度旅游在大规模封号，本系统暂时停止运行，已清空所有账号，请不要再添加，代码完善后会有提示 </b></li>
+            <li></li>
+        </ul>    
+    </div>
+    <div class="janecc">
+    	<div class="error">
+        	<h3>出错列表</h3>
+            <ul class="login">
+            <li>Cookie错误账号数 : {{p}} 个</li>
+            <li>错误Cookie的SID列表 :  </li>
+            <form>
+            <textarea disabled="disabled" class="errorcookie" style="resize:none" >{% for user in errlist %}{{ '     '+user+'\n' }}{% end %}</textarea>
+            </form>
+            </ul>
+        </div>
+        <div class="version">
+        	<h3>版本更新</h3>
+            <div class="now">当前版本{{VERS}}</div>
+            <textarea disabled="disabled" class="new" style="resize:none" >{{newv}}</textarea>
+            <!--<div class="update"><form><input type="submit"  class="submit"/></form></div>-->
+        </div>
+    </div>
+</div>
+
+<div class="footer">
+	©2014 度娘财富 | <a href="https://github.com/ihciah/bdtravel" target="_blank">百度旅游财富助手</a> | Code by <a href="http://www.ihcblog.com/" target="_blank">ihciah</a> | Theme by <a href="http://www.janecc.com/" target="_blank">JaneCC</a>
+</div>
+</body>
+</html>

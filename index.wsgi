@@ -4,12 +4,13 @@
 #__author__= 'ihciah@gmail.com'
 #__author__= 'BaiduID-ihciah'
 #__author__= 'http://www.ihcblog.com'
-import tornado.wsgi,urllib2,cookielib,urllib,json,time,sys
+import tornado.wsgi,urllib2,cookielib,urllib,json,time,sys,copy
 import MySQLdb
 import sae.const,random
 #You may edit here
 setpassword='ihciah'
-
+starttime=9
+#每天刷财富的开始时间(凌晨刷被封几率较大哦)
 #mode不再需要手动设置！仅修改setpassword即可！
 
 #----------------------------以下内容非必要请不要修改-------------------------------
@@ -18,9 +19,11 @@ VERSION=2.7
 err=0
 fcc=0
 mark=0
-mode=1
-ferrinfo=''
+mode=0
+ferrinfo=''#严重错误
 bdstoken=''
+onetimecount=1#每次调用刷的次数
+userids=[]#存储关注列表
 reload(sys)
 sys.setdefaultencoding('utf-8')
 def strc(ihc1,ihc2,ihc3):
@@ -31,31 +34,48 @@ def strc(ihc1,ihc2,ihc3):
     if iend==-1:
         iend=len(ihc1)-1
     return ihc1[istart:iend]
-def getid(page):
-    global mode
+def strcall(a,b,c):
     u=0
+    r=[]
+    while(1):
+        u=a.find(b,u+1)
+        if u==-1:
+            break
+        else:
+            tt=a.find(c,u+len(b)+1)
+            r.append(a[u+len(b):tt])
+    return copy.copy(r)
+def getid(page):
+    global mode,userids
+    u=0
+    l=0
     r=[]
     if mode==0:
         a=urllib2.urlopen("http://lvyou.baidu.com/pictravel/ajax/getpictravels?query_type=0&pn="+str(page)).read()
+        r=strcall(a,'"ptid":"','"')
         while(1):
-            u=a.find('"ptid":"',u+1)
-            if u==-1:
+            l=a.find('"uid":"',l+1)
+            if l==-1:
                 break
             else:
-                tt=a.find('"',u+len('"ptid":"')+1)
-                r.append(a[u+len('"ptid":"'):tt])
+                tt=a.find('"',l+len('"uid":"')+1)
+                userids.append(a[l+len('"uid":"'):tt])
     else:
         page=random.randint(1, 1000)
         a=urllib2.urlopen("http://lvyou.baidu.com/search/ajax/searchnotes?format=ajax&type=0&pn=%s&rn=20" %page).read()
-        while(1):
-            u=a.find('"nid":"',u+1)
-            if u==-1:
-                break
-            else:
-                tt=a.find('"',u+len('"nid":"')+1)
-                r.append(a[u+len('"nid":"'):tt])
+        r=strcall(a,'"nid":"','"')
     return r
-
+def htmlr(str):
+    rdict={'&quot;':'"',
+           '&gt;':'>',
+           '&lt;':'<',
+           'nbsp;':' ',#@百度管理员:你们是不是漏掉了一个'&'符号？
+           '&amp;':'&',
+           '&nbsp;':' '#万一哪天改对了我代码还能用^_^
+    }
+    for (k,v) in  rdict.items():
+        str=str.replace(k,v)
+    return str
 def zan(id,opener):
     global mode, fcc,ferrinfo,mark,bdstoken
     if mode==0:
@@ -65,11 +85,27 @@ def zan(id,opener):
     else:
         rr=opener.open('http://lvyou.baidu.com/notes/'+str(id)).read()
         bdstoken=strc(rr, 'bdstoken":"', '"')
-        data=urllib.urlencode({'xid': str(id), 'type': '1', 'bdstoken': bdstoken, 'recommend_word': '游记很棒，赞一个，我向大家推荐了。'})
+        hf=strc(rr,'<div class="fl">回 复','|')
+        data=urllib.urlencode({'xid': str(id), 'type': '1', 'bdstoken': bdstoken})
+        if hf.isdigit():
+            hf=int(hf)
+            if hf>=300:#300回复(20页)以上
+                if random.choice([1,0,0,0])==1:#1/4几率回复
+
+                # @百度旅游管理员:我知道你会看到这段话,我们只是刷点宝贝,玩玩而已,不要太认真嘛~
+                # 而且新版本的代码已经只能获取很少的财富值了!
+
+                    page=random.randint(7, 20)
+                    pl=opener.open('http://lvyou.baidu.com/notes/'+str(id)+'-'+str(page*15)).read()
+                    pl=htmlr(pl)
+                    ycpl=strcall(a,'楼</span><p>','</p>')#原创评论
+                    if len(ycpl)==0:
+                        ycpl=strcall(a,'</span></div></div><p></p><p>','</p>')#引用评论
+                        data=urllib.urlencode({'xid': str(id), 'type': '1', 'bdstoken': bdstoken,'recommend_word':ycpl})
     res=opener.open('http://lvyou.baidu.com/user/recommend/save?format=ajax', data).read()
     if res.find('User has recommended') != -1:#本游记已赞
         return 1
-    if res.find('"errno": null,')!=-1:
+    if res.find('"errno": null,')!=-1 or res.find('user has no rights')!=1:#cookie失效或被封则将用户加入错误列表，停止刷号
         fcc+=1
         ferrinfo=res
     if mark==1:#添加至收藏
@@ -78,13 +114,14 @@ def zan(id,opener):
         opener.open(url,data)
     return 0
 def follow(opener):
-    global bdstoken
-    userids=['884676de3807e42ea6225d6b','d601d88d413eeaae9ef80c22']
+    global bdstoken,userids
     url1='http://lvyou.baidu.com/user/follow/save?format=ajax'
     url2='http://lvyou.baidu.com/user/follow/cancel?format=ajax'
     data=urllib.urlencode({'uid': random.choice(userids), 'bdstoken': bdstoken})
-    opener.open(url1,data)#关注
-    opener.open(url2,data)#取消关注
+    if random.choice([1,1,0])==1:
+        opener.open(url1,data)#2/3几率关注
+        if random.choice([1,1,1,1,0])==0:
+            opener.open(url2,data)#其中1/5的几率取消关注
 def moresafe(string):
     blocklist=['"',"'",'%','<','(','*',')','>','`']
     sqllist=['select','drop','union','update','infile','where']
@@ -107,6 +144,7 @@ def getmydb():
     return mydb
 
 def zanpage(pageid,cc):
+    global onetimecount
     ids=getid(str(pageid))
     ua='Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.95 Safari/537.36'
     #cookie=cookielib.CookieJar()
@@ -116,8 +154,9 @@ def zanpage(pageid,cc):
     opener.addheaders = [('Cookie', cc)]
     urllib2.install_opener(opener)
     ti=0
-    follow(opener)
-    while ti<5:
+    if random.choice([1,1,1,1,0])==0:
+        follow(opener)
+    while ti<int(onetimecount):
         theone=random.choice(ids)
         ids.remove(theone)
         if zan(theone,opener)==0:
@@ -125,34 +164,45 @@ def zanpage(pageid,cc):
         else:
             global err
             err=err+1
-    follow(opener)
 def updinfo(ver):
     try:
         urr=urllib2.urlopen("aHR0cDovL2Rldi5paGNibG9nLmNvbS9jb2RlL2JkdGpzb24uaHRtbA==".decode('base64').replace('\n','')+'?appid='+sae.const.APP_NAME+'&ver='+str(ver)).read()
         upd=strc(urr,'<ver>','</ver>')
-        result='<br>最新版本:'+str(upd)
+        result='最新版本:'+str(upd)
         if float(ver)<float(upd):
             downloadurl=strc(urr,'<download>','</download>')
             changedata=strc(urr,'<logdata>','</logdata>')
             changelist=json.loads(changedata)
             changelist=sorted(changelist, key=lambda m : m['ver'])
-            result+='<br><br>在新的版本里做了如下更新:'
+            for i in changelist:
+                i['log']=i['log'].replace("<br>",'\n')
+                i['log']=i['log'].replace("<br \>",'\n')
+                i['log']=i['log'].replace("<br\>",'\n')
+            if downloadurl!='':
+                result+='\n下载地址：%s' %downloadurl
+            result+='\n在新的版本里做了如下更新:'
             for i in changelist:
                 if float(i['ver'])>float(ver) and float(i['ver'])<=float(upd):
-                    result=result+'<br>&nbsp;&nbsp;V'+str(i['ver'])
+                    result=result+'\n  '+str(i['ver'])
                     result=result+':'+i['log'].encode('utf-8')
-            if downloadurl!='':
-                result+='<br><br><a href="%s">>>请点击这里下载并更新源代码<<</a>' %downloadurl
-            else:
-                result+='<br><br>[请访问<a href="http://tieba.baidu.com/p/2972991643">贴吧链接</a>获取更新]|[<a href="https://github.com/ihciah/bdtravel">Github</a>]'
+        else:
+            result+='\n\n[请访问http://tieba.baidu.com/p/2972991643(贴吧链接)\nhttps://github.com/ihciah/bdtravel(Github)\n获取更新]'
     except:
-        result= '<br>更新服务器出BUG了，记得手动检查更新哦~'
+        result= '\n更新服务器出BUG了，记得手动检查更新哦~'
     return result
 
 
 class Shua(tornado.web.RequestHandler):
     def get(self):
-        global fcc, mode, ferrinfo,mark
+        global fcc, mode, ferrinfo,mark,starttime,onetimecount
+        if starttime not in dir():
+            starttime=9
+        if int(time.strftime("%H"))<int(starttime):
+            self.write('Time is not correct.Task will be started after %d:00.'%int(starttime))
+            return
+        if random.choice([1,1,0,0,0,0,0,0])==0:#3/4的几率不执行任务
+            self.write('pass.maybe next time~')
+            return
         fcc=0
         page=random.randint(1, 800)
         mydb = getmydb()
@@ -178,7 +228,7 @@ class Shua(tornado.web.RequestHandler):
         zanpage(page,info['cookie'])
         cursor.execute("UPDATE bdaccounts SET time=%d WHERE sid='%s'" %(info['time']+5,info['sid']))
         self.write('5 "Zan" have been submited.<br>Number of the repeated topic:'+str(err))
-        if fcc>=5:
+        if fcc>=onetimecount:
             self.write('<br>Fatal Error:Maybe this cookie is wrong or out of date')
             cursor.execute("UPDATE bdaccounts SET time=500,cookie='ERROR' WHERE sid='%s' AND cookie='%s'" %(info['sid'],info['cookie']))
             self.write('<br>This account has been disabled due to wrong cookie.')
@@ -229,52 +279,7 @@ class Set(tornado.web.RequestHandler):
         mydb.close()
         self.write('<br><br><a href="/">Return homepage</a>')
     def get(self):
-        self.write('''
-        <html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-          <title>Set BDCOOKIE</title></head>
-          <body>
-          <h1 style="text-align:center">添加用户 & 更新Cookie</h1>
-          <form style="text-align:center" action="/set" method="post" accept-charset="utf-8">
-            <div>sid:<textarea name="sid" value="" rows="1" cols="50"></textarea></div>
-            <div>cookie:</div><div><textarea name="cookie" value="" rows="5"></textarea></div>
-            <div>Mode:<select name="mode"><option value=1 selected>贪婪模式</option><option value=0>安全模式</option></select></div>
-            <div>Add bookmark:<select name="mark"><option value=0 selected>不添加</option><option value=1>添加</option></select></div>
-            <div>Password:<input name="psw" type="password" size=10 /></div>
-            <div><input type="submit" value="Submit"></div>
-          </form>
-          <br><p style="text-align:center"><a href="/"><-Return homepage</a></p><br><br>
-          <p style="text-align:center">Note:</p>
-          <p style="text-align:center"><font color="red">【SID】</font></p>
-          <p style="text-align:center">SID不一定是百度ID，可以是英文和数字的任意组合。</p>
-          <p style="text-align:center">初始设定时SID随意取，但更新cookie时需要输入初始设定的sid，所以请记住(忘记请登录SAE点击数据库管理去看)</p>
-          <p style="text-align:center">每个SID唯一对应一个账号，为防止他人改动你的cookie，请设置4位以上，首页将在cookie过期时显示sid前4位</p>
-          <p style="text-align:center"><font color="red">【如何获取COOKIE】(javascript方式可能出错)</font></p>
-          <p style="text-align:center"></p>
-          <p style="text-align:center">1.使用chrome新打开一个隐身标签页（注意是隐身标签页）</p>
-<p style="text-align:center">2.打开lvyou.baidu.com并登陆</p>
-<p style="text-align:center">3.点击F12</p>
-<p style="text-align:center">4.刷新该页面</p>
-<p style="text-align:center">5.在下方的开发者工具中选择Network标签，拉到最上边，点击第一个包(名为lvyou.baidu.com)，右侧点击Header标签</p>
-<p style="text-align:center">6.把Request Header中的Cookie复制下来（直接复制，所有的都复制下来扔进去）</p>
-
-
-<p style="text-align:center">Cookie格式像这样(其实只需要有关键的几项就够了)：</p>
-
-HMACCOUNT=EE7823421DWCE1; BAIDUID=893165EDQWFWQF213215905F223424:FG=1; BAIDU_WISE_UID=wapp_13941231390_446; Hm_lvt_f4165dfug3i4g2ifse6few70a6bd243=1393233964,1396627467; BDUSS=NCV2pkZjZCeGZnN2VmNWc2Z1N6VHBJN25MNXBTQllsTDBuRy0tVDWQFWfewfwFEWFWEBJCQAAAAAAAADWQEFW#44w5gtaWhjaWFoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANREWFEWFEWW; MCITY=-%3A; cflag=65535%3A1
-
-
-<p style="text-align:center">至此Cookie已提取成功。直接关闭浏览器（别点退出，否则cookie失效）</p>
-
-<p style="text-align:center">本方法对新手可能较为复杂，可自行百度其他获取cookie的方法</p>
-<p style="text-align:center">（各大云签到都有教哦，但要注意格式，这个使用的cookie是带着键名的）</p>
-<p style="text-align:center"><font color="red">【PASSWORD】</font></p>
-<p style="text-align:center">密码为index.wsgi中11行设置的密码。默认为ihciah，最好修改掉。</p>
-<p style="text-align:center">只有拥有这个密码才可以使用本系统。</p>
-<p style="text-align:center"><font color="red">【模式和收藏】</font></p>
-<p style="text-align:center">贪婪模式每天+2000财富，安全模式每天+725财富.贪婪模式下被百度封号几率较大.</p>
-<p style="text-align:center">收藏功能开启时会自动收藏游记，每天额外+500财富，但会影响收藏功能使用.</p>
-          </body>
-          </html>''')
+        self.render("html/set.html")
 
 class Reset(tornado.web.RequestHandler):
     def get(self):
@@ -284,7 +289,9 @@ class Reset(tornado.web.RequestHandler):
         self.write('Counter has been reset. :)')
         mydb.close()
         self.write('<br><br><a href="/">Return homepage</a>')
-
+class About(tornado.web.RequestHandler):
+    def get(self):
+        self.render("html/about.html")
 class Home(tornado.web.RequestHandler):
     def get(self):
         global err,fcc,mode,VERSION
@@ -294,6 +301,7 @@ class Home(tornado.web.RequestHandler):
         jstr=''
         rcount=0
         allcount=0
+        errlist=[]
         for row in cursor.fetchall():
             rcount+=int(row[2])
             if row[4]==1:
@@ -307,19 +315,15 @@ class Home(tornado.web.RequestHandler):
         ppp=str(ppp)
         if rcount==0 and int(time.strftime("%H"))>1 and pp!=p:
             jstr+=' - <font color="red">请检查你的config.yaml配置!</font>'
-        self.write('<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><title>Coin fetcher for Baidu Travel</title>')
-        self.write('<script type="text/javascript">function show_confirm(){var r=confirm("此操作将导致所有计数器归零，所有刷分操作重新开始。确认？");if (r==true){location.href ="/reset";}}function shua(){location.href ="/shua";}</script></head><body>')
-        self.write('<h1>Simple BaiDu Travel coin fetcher</h1><br><br><br>现有账号数:'+pp+'<br>今日已完成:'+ppp+'账号<br>总进度:'+jstr+'<br>Cookie错误账号数:'+p+'<br>错误Cookie的SID列表:')
         for row in cursor.fetchall():
-            self.write('<br>&nbsp;&nbsp;&nbsp;&nbsp;'+row[0][:4]+'*'*(len(row[0])-4))
+            errlist.append(row[0][:4]+'*'*(len(row[0])-4))
         if p=='0':
-            self.write('<br>&nbsp;&nbsp;&nbsp;&nbsp;恭喜~没有Cookie出错的用户哦 :)')
-        self.write('<br><br><a href="/set">>>>更新Cookie或登记新账号，请点这里<<<</a><br><br>调试工具(仅供管理员调试之用):<br><input type="button" onclick="shua()" value="手动调用" /><br><input type="button" onclick="show_confirm()" value="重置所有计数器" /><br>\
-        <br>Source Code:</br><a href="https://github.com/ihciah/bdtravel" target="_blank">Github</a> | <a href="http://tieba.baidu.com/p/2972991643" target="_blank">Tieba post</a><br>By ihciah(www.ihcblog.com)')
-        self.write('<br><br>你的应用版本:'+str(VERSION))
-        self.write(updinfo(VERSION))
+            errlist.append('恭喜~没有Cookie出错的用户哦 :)')
+        self.render("html/index.html",p=p,pp=pp,ppp=ppp,jstr=jstr,errlist=errlist,VERS=str(VERSION),newv=updinfo(VERSION))
+        #self.write('<br><br>你的应用版本:'+str(VERSION))
+        #self.write(updinfo(VERSION))
         mydb.close()
-        self.write('</body></html><!--HTML代码纯手敲，是有点简陋-_-||-->')
+        #self.write('</body></html><!--HTML代码纯手敲，是有点简陋-_-||-->')
 class Initialize(tornado.web.RequestHandler):
     def get(self):
         try:
@@ -341,6 +345,9 @@ class Initialize(tornado.web.RequestHandler):
             cursor.execute(cmd)
         except:
             pass
+        if 'mydb' not in dir():
+            self.write('Mysql server has not been opened.Please open it in SAE adminpage')
+            return
         mydb.close()
         self.write('Database has benn initialized. :)<br>This function is of no use from now on.')
 app = tornado.wsgi.WSGIApplication([
@@ -349,6 +356,7 @@ app = tornado.wsgi.WSGIApplication([
   ('/reset',Reset),
   ('/',Home),
   ('/init',Initialize),
+  ('/about',About),
 
 ], debug=True)
 

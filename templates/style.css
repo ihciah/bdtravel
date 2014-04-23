@@ -1,0 +1,72 @@
+﻿@charset "utf-8";
+*{margin:0; padding:0; border:0; font-family:"微软雅黑"; }
+a:link,a:active,a:visited,a:hover {
+	text-decoration:none;
+	color:#00F
+}
+ul,ol,li{ list-style:none}
+
+.header{width:100%; height:60px; background:#35aadc }
+.head{width:980px; height:60px; margin:0 auto; color:#FFF}
+.tittle{width:300px; height:60px; line-height:50px; font-size:30px;float:left; text-align:center}
+.tittle h1{font-size:36px; line-height:60px}
+
+.nav{width:660px; height:50px; float:right; font-size:20px}
+.nav li{width:auto; height:auto;margin:10px 3px 0;; line-height:40px; float:left;}
+.nav li a{display:block;width:auto; height:40px; margin-top:5px;padding:0 20px; color:#FFF}
+.nav li a:hover{background:#FFF;color:#5d9aff; border-radius:5px;}
+.nav .currents a{display:block;width:auto; height:40px; margin-top:5px;padding:0 20px;background:#FFF; color:#5d9aff;border-radius:5px;}
+
+.main{width:980px; height:550px; margin:10px auto; border-radius:5px; box-shadow:0 0 15px #ccc; background:#efefef}
+.aboutme{width:380px; height:530px; margin:10px 10px; border-radius:5px; border:1px dashed #ccc; float:left;}
+.aboutme h2{ text-align:center; margin:10px 0;}
+.aboutme p{width:360px; height:480px; margin:0 auto; line-height:25px; overflow:hidden}
+.janecc{width:550px; height:530px; margin:10px 10px; border-radius:5px; border:1px dashed #ccc; float:left;}
+h3{ width:30px; height:auto;float:left;border-radius:5px; border-right:1px dashed #ccc;text-align:center }
+
+.error{width:525px; height:300px; margin:10px 10px; border-radius:5px; border:1px dashed #ccc; float:left; }
+.error h3{height:280px; line-height:50px; margin:10px 2px}
+
+.version{width:525px; height:180px; margin:10px 10px; border-radius:5px; border:1px dashed #ccc; float:left;}
+.version h3{ line-height:40px;margin:10px 2px}
+.now,.old,.update{width:400px; height:30px; margin:10px auto;text-align:center;border-bottom:1px dashed #ccc;}
+.new{width:450px; height:100px; margin:10px auto;text-align:center;border-bottom:1px dashed #ccc;}
+.footer{width:980px; height:60px; margin:0 auto; background:#626; background:#35aadc; color:#FFF; text-align:center; line-height:50px; border-radius:5px; }
+.footer a{ color:#f4887f}
+
+/*助手*/
+.aboutme ul{width:360px; height:480px; margin:0 auto; line-height:25px; overflow:hidden}
+.aboutme ul li{ line-height:30px}
+.aboutme ul li input{width: auto; height:38px; padding:3px 12px; border-radius:5px; background:#35aadc; color:#FFF; font-size:16px; outline:none}
+.aboutme ul li input:hover{background:#f4887f; }
+.space{width:360px; height:30px;}
+
+.errorcookie{width:480px; height:200px;outline:none}
+.error ul{ line-height:25px; padding-left:5px}
+
+/*set*/
+.errorset{width:525px; height:400px; margin:10px 10px; border-radius:5px; border:1px dashed #ccc; float:left; }
+.versionset{width:525px; height:130px; margin:10px 10px; border-radius:5px; border:1px dashed #ccc; float:left;}
+.aboutme h3{width:380px; height:30px; text-align:center; margin:10px 0;}
+#janecc{width:330px;margin:5px;float:left;}
+.box{width:330px; height:450px;margin:10px 20px 0;background:#fff; float:left;border:1px solid #d3d3d3;}
+.tab_menu{width:330px;/*height:30px;*/overflow:hidden;}
+.tab_menu li{float:left;width:82.5px;height:30px;line-height:30px;color:#fff;background:#35aadc;text-align:center; cursor:pointer}
+.box ol li{ float:left}
+.tab_menu li.current{color:#333;background:#fff;}
+.tab_box{height:120px;padding:20px;line-height:25px; font-size:13px}
+.tab_box .hide{display:none;}
+
+.errorset h4{width:500px; height:30px; margin:10px auto; text-align:center;}
+.login{width:500px; height:250px;margin:10px auto;}
+.login li{width:500px; height:30px; margin:5px}
+.login .cao{width:500px;height:90px;margin:5px}
+.login li span{ width:130px; height:30px; float:left; text-align:right;margin-right:10px}
+.login li a{ color:#FFF}
+.sid{width:300px; height:30px;float:left; line-height:30px; border-radius:5px;border:1px #ddd solid; outline:none}
+.cookie{width:300px; height:90px;float:left;line-height:30px; border-radius:5px; border:1px #ddd solid;outline:none;}
+.psw{width:300px; height:30px;float:left;line-height:30px; border-radius:5px;border:1px #ddd solid; outline:none}
+.select{width:120px; height:30px;float:left;line-height:30px; border-radius:5px;border:1px #ddd solid; outline:none}
+.submit{ width:120px; height:44px; background:#35aadc; color:#FFF;border-radius:5px; outline:none; font-size:25px;margin:10px 0 0 20px; float:left}
+.submit:hover{background:#f4887f;}
+.go{ display:block; width:120px; height:44px; background:#35aadc; color:#FFF;border-radius:5px;font-size:25px; line-height:44px; float:left; margin:10px 0 0 150px;}
