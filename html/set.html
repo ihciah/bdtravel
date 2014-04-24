@@ -6,7 +6,7 @@
 <link href="templates/style.css" rel="stylesheet" type="text/css" />
 <script src="templates/jquery.min.js"></script>
 <script src="templates/jquery.tabs.js"></script>
-<script>
+<script type="text/javascript">
 $(function(){
 	$('.demo').Tabs();
 });	
@@ -18,6 +18,18 @@ function changewhenfocus(l)
 	}
 function writepsw(){
 	document.getElementById("psw").value="ihciah";
+}
+function validate_form(thisform)
+{
+with (thisform)
+  {
+  if (sid.value==""||sid.value==null)
+    {alert('SID不能为空');sid.focus();return false}
+  if (cookie.value==""||cookie.value==null)
+    {alert('cookie不能为空');cookie.focus();return false}
+  if (psw.value==""||psw.value==null)
+    {alert('密码不能为空(试试默认密码ihciah?)');psw.focus();return false}
+  }
 }
 </script>
 </head>
@@ -85,7 +97,7 @@ function writepsw(){
     	<div class="errorset">
         	<h4>添加用户 &amp; 更新Cookie</h4>
             <ul class="login">
-            <form style="text-align:center" action="/set" method="post" accept-charset="utf-8">
+            <form style="text-align:center" action="/set" onsubmit="return validate_form(this)" method="post" accept-charset="utf-8">
                 <li><span>SID : </span><input name="sid" class="sid" value="" rows="1" cols="50" onfocus="changewhenfocus(0)"></textarea></li>
                 <li class="cao"><span>Cookie : </span><textarea name="cookie" class="cookie" value="" rows="8" style="resize:none" onfocus="changewhenfocus(1);"></textarea></li>
                 <li><span>模式 : </span><select name="mode"  class="select" onfocus="changewhenfocus(2);"><option value=1 selected>贪婪模式</option><option value=0>安全模式</option></select></li>
