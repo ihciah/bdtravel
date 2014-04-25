@@ -24,6 +24,7 @@ ferrinfo=''#严重错误
 bdstoken=''
 onetimecount=1#每次调用刷的次数
 userids=[]#存储关注列表
+blockflag=0
 reload(sys)
 sys.setdefaultencoding('utf-8')
 def strc(ihc1,ihc2,ihc3):
@@ -77,7 +78,7 @@ def htmlr(str):
         str=str.replace(k,v)
     return str
 def zan(id,opener):
-    global mode, fcc,ferrinfo,mark,bdstoken
+    global mode, fcc,ferrinfo,mark,bdstoken,blockflag
     if mode==0:
         rr=opener.open('http://lvyou.baidu.com/pictravel/'+str(id)).read()
         bdstoken=strc(rr,'bdstoken":"', '"')
@@ -108,6 +109,8 @@ def zan(id,opener):
     if res.find('"errno": null,')!=-1 or res.find('user has no rights')!=1:#cookie失效或被封则将用户加入错误列表，停止刷号
         fcc+=1
         ferrinfo=res
+        if res.find('user has no rights')!=1:
+            blockflag=1
     if mark==1:#添加至收藏
         url='http://lvyou.baidu.com/user/favorite/save?format=ajax'
         data=urllib.urlencode({'xid': str(id),'type': '1', 'bdstoken': bdstoken})
@@ -194,7 +197,7 @@ def updinfo(ver):
 
 class Shua(tornado.web.RequestHandler):
     def get(self):
-        global fcc, mode, ferrinfo,mark,starttime,onetimecount
+        global fcc, mode, ferrinfo,mark,starttime,onetimecount,blockflag
         if starttime not in dir():
             starttime=9
         if int(time.strftime("%H"))<int(starttime):
@@ -228,10 +231,17 @@ class Shua(tornado.web.RequestHandler):
         zanpage(page,info['cookie'])
         cursor.execute("UPDATE bdaccounts SET time=%d WHERE sid='%s'" %(info['time']+int(onetimecount),info['sid']))
         self.write(str(onetimecount)+' "Zan" have been submited.<br>Number of the repeated topic:'+str(err))
-        if fcc>=onetimecount:
+        if fcc>=onetimecount and blockflag==0:
             self.write('<br>Fatal Error:Maybe this cookie is wrong or out of date')
             cursor.execute("UPDATE bdaccounts SET time=500,cookie='ERROR' WHERE sid='%s' AND cookie='%s'" %(info['sid'],info['cookie']))
             self.write('<br>This account has been disabled due to wrong cookie.')
+            self.write('<br>Err info:<br>')
+            self.write(ferrinfo)
+        if fcc>=onetimecount and blockflag==1:
+            self.write('<br>Fatal Error:This account has been blocked by baidu.')
+            preference[0]['block']=1
+            jp=json.dumps(preference)
+            cursor.execute("UPDATE bdaccounts SET time=500,cookie='ERROR',preference='%s' WHERE sid='%s' AND cookie='%s'" %(jp,info['sid'],info['cookie']))
             self.write('<br>Err info:<br>')
             self.write(ferrinfo)
         mydb.close()
@@ -242,7 +252,7 @@ class Set(tornado.web.RequestHandler):
         sid=str(self.get_argument('sid',''))
         psw=str(self.get_argument('psw',''))
         mark=int(self.get_argument('mark','0'))
-        mode=int(self.get_argument('mode','1'))
+        mode=int(self.get_argument('mode','0'))
         cookie=moresafe(cookie)
         sid=moresafe(sid)[:200]
         if mark!=1 and mark!=0:
@@ -294,7 +304,7 @@ class About(tornado.web.RequestHandler):
         self.render("html/about.html")
 class Home(tornado.web.RequestHandler):
     def get(self):
-        global err,fcc,mode,VERSION
+        global err,fcc,mode,VERSION,starttime
         mydb = getmydb()
         cursor = mydb.cursor()
         jcount=int(cursor.execute("select * from bdaccounts where time<100 and cookie!='ERROR'"))
@@ -302,6 +312,8 @@ class Home(tornado.web.RequestHandler):
         rcount=0
         allcount=0
         errlist=[]
+        blocklist=[]
+        finlist=[]
         for row in cursor.fetchall():
             rcount+=int(row[2])
             if row[4]==1:
@@ -313,17 +325,21 @@ class Home(tornado.web.RequestHandler):
         pp=str(cursor.execute("SELECT * FROM bdaccounts"))#所有账号数，包括已完成，未完成，错误号
         p=str(cursor.execute("select * from bdaccounts where cookie='ERROR'"))#错误账号
         ppp=str(ppp)
-        #if rcount==0 and int(time.strftime("%H"))>1 and pp!=p:
-        #    jstr+=' - <font color="red">请检查你的config.yaml配置!</font>'
         for row in cursor.fetchall():
-            errlist.append(row[0][:4]+'*'*(len(row[0])-4))
+            #errlist.append(row[0][:4]+'*'*(len(row[0])-4))
+            errlist.append(row[0])
+        cursor.execute("select * from bdaccounts where cookie='ERROR' and preference REGEXP  '\"block\": 1'")#被封账号
+        for row in cursor.fetchall():
+            blocklist.append(row[0])
+        for i in errlist:
+            if i in blocklist:
+                finlist.append(i[:4]+'*'*(len(i)-4)+' -百度已封号')
+            else:
+                finlist.append(i[:4]+'*'*(len(i)-4))
         if p=='0':
-            errlist.append('恭喜~没有Cookie出错的用户哦 :)')
-        self.render("html/index.html",p=p,pp=pp,ppp=ppp,jstr=jstr,errlist=errlist,VERS=str(VERSION),newv=updinfo(VERSION))
-        #self.write('<br><br>你的应用版本:'+str(VERSION))
-        #self.write(updinfo(VERSION))
+            finlist.append('恭喜~没有Cookie出错的用户哦 :)')
+        self.render("html/index.html",p=p,pp=pp,ppp=ppp,jstr=jstr,errlist=finlist,VERS=str(VERSION),newv=updinfo(VERSION),starttime=str(starttime))
         mydb.close()
-        #self.write('</body></html><!--HTML代码纯手敲，是有点简陋-_-||-->')
 class Initialize(tornado.web.RequestHandler):
     def get(self):
         try:
