@@ -39,7 +39,7 @@ function shua(){location.href ="/shua";}
     	<h2>百度旅游财富助手</h2>
 		<ul>
         	
-            <li>现有账号数 : <b class="b">{{pp}}</b> 个</li>
+            <li>现有账号数 : <b class="b">{{pp}}</b> 个 | 正常工作 : <b class="b">{{int(pp)-int(p)}}</b>个</li>
             <li>今日已完成 : <b class="b">{{ppp}}</b> 账号</li>
             <li>总进度 : <b class="b">{{jstr}}</b> </li>
             <li>每日开始时间 : <b class="b">{{starttime}}:00</b> </li>
@@ -50,14 +50,14 @@ function shua(){location.href ="/shua";}
             <li><b style="color:red;">>>>注册新账号或更新账号请点击顶部标签<<< </b></li>
             <!--<li><b style="color:red;">近期百度旅游在大规模封号，本系统暂时停止运行，已清空所有账号，请不要再添加，代码完善后会有提示 </b></li>-->
             <li></li>
-        </ul>    
+        </ul>
     </div>
     <div class="janecc">
     	<div class="error">
         	<h3>出错列表</h3>
             <ul class="login">
-            <li>Cookie错误账号数 : {{p}} 个</li>
-            <li>错误Cookie的SID列表 :  </li>
+            <li>Cookie错误账号数 : <b class="b">{{int(p)-blockcount}}</b> 个 | 被封账号数 : <b class="b">{{blockcount}}</b> 个 {%if blockcount!=0%}默哀...>_<{%end%}</li>
+            <li>出错的SID列表 :  </li>
             <form>
             <textarea disabled="disabled" class="errorcookie" style="resize:none" >{% for user in errlist %}{{ '     '+user+'\n' }}{% end %}</textarea>
             </form>

@@ -329,7 +329,7 @@ class Home(tornado.web.RequestHandler):
         for row in cursor.fetchall():
             #errlist.append(row[0][:4]+'*'*(len(row[0])-4))
             errlist.append(row[0])
-        cursor.execute("select * from bdaccounts where cookie='ERROR' and preference REGEXP  '\"block\": 1'")#被封账号
+        bc=cursor.execute("select * from bdaccounts where cookie='ERROR' and preference REGEXP  '\"block\": 1'")#被封账号
         for row in cursor.fetchall():
             blocklist.append(row[0])
         for i in errlist:
@@ -339,7 +339,7 @@ class Home(tornado.web.RequestHandler):
                 finlist.append(i[:4]+'*'*(len(i)-4))
         if p=='0':
             finlist.append('恭喜~没有Cookie出错的用户哦 :)')
-        self.render("html/index.html",p=p,pp=pp,ppp=ppp,jstr=jstr,errlist=finlist,VERS=str(VERSION),newv=updinfo(VERSION),starttime=str(starttime))
+        self.render("html/index.html",p=p,pp=pp,ppp=ppp,jstr=jstr,errlist=finlist,VERS=str(VERSION),newv=updinfo(VERSION),starttime=str(starttime),blockcount=int(bc))
         mydb.close()
 class Initialize(tornado.web.RequestHandler):
     def get(self):
