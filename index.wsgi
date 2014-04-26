@@ -106,12 +106,13 @@ def zan(id,opener):
     res=opener.open('http://lvyou.baidu.com/user/recommend/save?format=ajax', data).read()
     if res.find('User has recommended') != -1:#本游记已赞
         return 1
-    if res.find('"errno": null,')!=-1 or res.find('user has no rights')!=1:#cookie失效或被封则将用户加入错误列表，停止刷号
+    if res.find('"errno": null,')!=-1 or res.find('user has no rights')!=-1:#cookie失效或被封则将用户加入错误列表，停止刷号
         fcc+=1
         ferrinfo=res
-        if res.find('user has no rights')!=1:
+        if res.find('user has no rights')!=-1:
             blockflag=1
     if mark==1:#添加至收藏
+        time.sleep(2+random.randint(1,5))
         url='http://lvyou.baidu.com/user/favorite/save?format=ajax'
         data=urllib.urlencode({'xid': str(id),'type': '1', 'bdstoken': bdstoken})
         opener.open(url,data)
