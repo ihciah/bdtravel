@@ -52,8 +52,15 @@ def getid(page):
     l=0
     r=[]
     if mode==0:
-        a=urllib2.urlopen("http://lvyou.baidu.com/pictravel/ajax/getpictravels?query_type=0&pn="+str(page)).read()
-        r=strcall(a,'"ptid":"','"')
+        ran=random.choice([0,1])
+        if ran==1:
+            a=urllib2.urlopen("http://lvyou.baidu.com/pictravel/ajax/getpictravels?query_type=0&pn="+str(page)).read()
+            r=strcall(a,'"ptid":"','"')
+            r.append('pic')
+        else:
+            a=urllib2.urlopen("http://lvyou.baidu.com/search/ajax/searchnotes?format=ajax&type=0&pn=%s&rn=20" %page).read()
+            r=strcall(a,'"nid":"','"')
+            r.append('note')
         while(1):
             l=a.find('"uid":"',l+1)
             if l==-1:
@@ -77,12 +84,17 @@ def htmlr(str):
     for (k,v) in  rdict.items():
         str=str.replace(k,v)
     return str
-def zan(id,opener):
+def zan(id,opener,typeflag):
     global mode, fcc,ferrinfo,mark,bdstoken,blockflag
     if mode==0:
-        rr=opener.open('http://lvyou.baidu.com/pictravel/'+str(id)).read()
-        bdstoken=strc(rr,'bdstoken":"', '"')
-        data=urllib.urlencode({'xid': str(id),'type': '10', 'bdstoken': bdstoken})
+        if typeflag=='pic':
+            rr=opener.open('http://lvyou.baidu.com/pictravel/'+str(id)).read()
+            bdstoken=strc(rr,'bdstoken":"', '"')
+            data=urllib.urlencode({'xid': str(id),'type': '10', 'bdstoken': bdstoken})
+        else:
+            rr=opener.open('http://lvyou.baidu.com/notes/'+str(id)).read()
+            bdstoken=strc(rr, 'bdstoken":"', '"')
+            data=urllib.urlencode({'xid': str(id), 'type': '1', 'bdstoken': bdstoken})
     else:
         rr=opener.open('http://lvyou.baidu.com/notes/'+str(id)).read()
         bdstoken=strc(rr, 'bdstoken":"', '"')
@@ -151,8 +163,6 @@ def zanpage(pageid,cc):
     global onetimecount
     ids=getid(str(pageid))
     ua='Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.95 Safari/537.36'
-    #cookie=cookielib.CookieJar()
-    #opener=urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie))
     opener=urllib2.build_opener()
     opener.addheaders = [('User-Agent', ua)]
     opener.addheaders = [('Cookie', cc)]
@@ -161,9 +171,15 @@ def zanpage(pageid,cc):
     if random.choice([1,1,1,1,0])==0:
         follow(opener)
     while ti<int(onetimecount):
+        if 'note' in ids:
+            typeflag='note'
+            ids.remove('note')
+        else:
+            typeflag='pic'
+            ids.remove('pic')
         theone=random.choice(ids)
         ids.remove(theone)
-        if zan(theone,opener)==0:
+        if zan(theone,opener,typeflag)==0:
             ti=ti+1
         else:
             global err
