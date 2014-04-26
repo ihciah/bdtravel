@@ -15,7 +15,7 @@ starttime=9
 
 #----------------------------以下内容非必要请不要修改-------------------------------
 
-VERSION=2.7
+VERSION=2.8
 err=0
 fcc=0
 mark=0
@@ -25,6 +25,7 @@ bdstoken=''
 onetimecount=1#每次调用刷的次数
 userids=[]#存储关注列表
 blockflag=0
+iy=0
 reload(sys)
 sys.setdefaultencoding('utf-8')
 def strc(ihc1,ihc2,ihc3):
@@ -61,17 +62,13 @@ def getid(page):
             a=urllib2.urlopen("http://lvyou.baidu.com/search/ajax/searchnotes?format=ajax&type=0&pn=%s&rn=20" %page).read()
             r=strcall(a,'"nid":"','"')
             r.append('note')
-        while(1):
-            l=a.find('"uid":"',l+1)
-            if l==-1:
-                break
-            else:
-                tt=a.find('"',l+len('"uid":"')+1)
-                userids.append(a[l+len('"uid":"'):tt])
+        userids=strcall(a,'"uid":"','"')
     else:
         page=random.randint(1, 1000)
         a=urllib2.urlopen("http://lvyou.baidu.com/search/ajax/searchnotes?format=ajax&type=0&pn=%s&rn=20" %page).read()
         r=strcall(a,'"nid":"','"')
+        userids=strcall(a,'"uid":"','"')
+        r.append('note')
     return r
 def htmlr(str):
     rdict={'&quot;':'"',
@@ -158,7 +155,17 @@ def getmydb():
         db = sae.const.MYSQL_DB,
         charset = 'utf8')
     return mydb
-
+def initall():
+    global fcc, mode, ferrinfo,mark,starttime,onetimecount,blockflag,bdstoken,userids
+    err=0
+    fcc=0
+    mark=0
+    mode=0
+    ferrinfo=''#严重错误
+    bdstoken=''
+    onetimecount=1#每次调用刷的次数
+    userids=[]#存储关注列表
+    blockflag=0
 def zanpage(pageid,cc):
     global onetimecount
     ids=getid(str(pageid))
@@ -171,12 +178,12 @@ def zanpage(pageid,cc):
     if random.choice([1,1,1,1,0])==0:
         follow(opener)
     while ti<int(onetimecount):
-        if 'note' in ids:
-            typeflag='note'
-            ids.remove('note')
-        else:
+        if 'pic' in ids:
             typeflag='pic'
             ids.remove('pic')
+        else:
+            typeflag='note'
+            ids.remove('note')
         theone=random.choice(ids)
         ids.remove(theone)
         if zan(theone,opener,typeflag)==0:
@@ -214,7 +221,7 @@ def updinfo(ver):
 
 class Shua(tornado.web.RequestHandler):
     def get(self):
-        global fcc, mode, ferrinfo,mark,starttime,onetimecount,blockflag
+        global fcc, mode, ferrinfo,mark,starttime,onetimecount,blockflag,bdstoken,userids,iy
         if starttime not in dir():
             starttime=9
         if int(time.strftime("%H"))<int(starttime):
@@ -246,7 +253,7 @@ class Shua(tornado.web.RequestHandler):
         else:
             mark=0
         zanpage(page,info['cookie'])
-        cursor.execute("UPDATE bdaccounts SET time=%d WHERE sid='%s'" %(info['time']+int(onetimecount),info['sid']))
+        cursor.execute("UPDATE bdaccounts SET time=%d WHERE sid='%s'" %(info['time']+int(onetimecount)+random.choice[0,0,1],info['sid']))
         self.write(str(onetimecount)+' "Zan" have been submited.<br>Number of the repeated topic:'+str(err))
         if fcc>=onetimecount and blockflag==0:
             self.write('<br>Fatal Error:Maybe this cookie is wrong or out of date')
@@ -262,7 +269,12 @@ class Shua(tornado.web.RequestHandler):
             self.write('<br>Err info:<br>')
             self.write(ferrinfo)
         mydb.close()
-        self.write('<br><br><a href="/">Return homepage</a>')
+        self.write('<br><br><a href="/">Return homepage</a><br>')
+        while iy<3:#刷的太慢了..加速一下...懒得重写函数什么的了,这么凑或用吧
+            initall()
+            iy+=1
+            time.sleep(3)
+            self.get()
 class Set(tornado.web.RequestHandler):
     def post(self):
         cookie=str(self.get_argument('cookie',''))
@@ -357,6 +369,7 @@ class Home(tornado.web.RequestHandler):
             finlist.append('恭喜~没有Cookie出错的用户哦 :)')
         self.render("html/index.html",p=p,pp=pp,ppp=ppp,jstr=jstr,errlist=finlist,VERS=str(VERSION),newv=updinfo(VERSION),starttime=str(starttime),blockcount=int(bc))
         mydb.close()
+
 class Initialize(tornado.web.RequestHandler):
     def get(self):
         try:
