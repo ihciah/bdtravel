@@ -253,7 +253,7 @@ class Shua(tornado.web.RequestHandler):
         else:
             mark=0
         zanpage(page,info['cookie'])
-        cursor.execute("UPDATE bdaccounts SET time=%d WHERE sid='%s'" %(info['time']+int(onetimecount)+random.choice[0,0,1],info['sid']))
+        cursor.execute("UPDATE bdaccounts SET time=%d WHERE sid='%s'" %(info['time']+int(onetimecount)+random.choice([0,0,1]),info['sid']))
         self.write(str(onetimecount)+' "Zan" have been submited.<br>Number of the repeated topic:'+str(err))
         if fcc>=onetimecount and blockflag==0:
             self.write('<br>Fatal Error:Maybe this cookie is wrong or out of date')
