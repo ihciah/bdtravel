@@ -253,7 +253,7 @@ class Shua(tornado.web.RequestHandler):
         else:
             mark=0
         zanpage(page,info['cookie'])
-        if (info['time']==25 and mode==1) or (info['time']==20 and mode==0):
+        if (info['time']==25-int(onetimecount) and mode==1) or (info['time']==20-int(onetimecount) and mode==0):
             addition=0
         else:
             addition=random.choice([0,0,1])#添加额外随机次数，不刷满
